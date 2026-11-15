@@ -1,0 +1,14 @@
+{
+  "priority": 2,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/payments"
+  },
+  "response": {
+    "status": 201,
+    "fixedDelayMilliseconds": 100,
+    "headers": { "Content-Type": "application/json" },
+    "body": "{\"id\": {{jsonPath request.body '$.external_reference'}}, \"status\": \"approved\", \"status_detail\": \"accredited\", \"payment_method_id\": \"{{jsonPath request.body '$.payment_method_id'}}\", \"transaction_amount\": {{jsonPath request.body '$.transaction_amount'}}, \"external_reference\": \"{{jsonPath request.body '$.external_reference'}}\"}",
+    "transformers": ["response-template"]
+  }
+}

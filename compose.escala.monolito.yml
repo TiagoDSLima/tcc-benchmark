@@ -1,0 +1,18 @@
+services:
+  monolito:
+    ports: !reset []
+    deploy:
+      replicas: ${REPLICAS_MONOLITO:-1}
+
+  balanceador:
+    image: nginx:1.27.3
+    depends_on: [monolito]
+    volumes:
+      - ./balanceador/monolito.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "${PORTA}:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: ${BALANCEADOR_CPUS}
+          memory: ${BALANCEADOR_MEMORIA}

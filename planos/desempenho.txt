@@ -1,0 +1,20 @@
+# Desempenho com o orçamento padrão (4 CPUs e 4 GB na camada de aplicação).
+# As taxas abaixo são provisórias: ajuste depois da calibração para representar cargas baixa, média e alta.
+# Rodar: bash scripts/lote.sh planos/desempenho.txt
+# Duração aproximada com 5 repetições: 13 h.
+
+repouso repouso DURACAO=2m
+
+catalogo carga TAXA=50
+catalogo carga TAXA=150
+catalogo carga TAXA=300
+
+compra carga TAXA=10
+compra carga TAXA=30
+compra carga TAXA=60
+
+misto carga TAXA=50
+misto carga TAXA=150
+misto carga TAXA=300
+
+misto estresse TAXA=400 VUS_MAX=1000 DURACAO_PASSO=30s

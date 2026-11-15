@@ -1,0 +1,179 @@
+name: bench-microsservicos
+
+x-depende-infra: &depende-infra
+  postgres: { condition: service_healthy }
+  kafka: { condition: service_healthy }
+
+services:
+  postgres:
+    image: postgres:17.4
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ../ecommerce-microservices/servicos/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ecommercepagamento"]
+      interval: 2s
+      retries: 30
+    deploy:
+      resources:
+        limits:
+          cpus: ${POSTGRES_CPUS}
+          memory: ${POSTGRES_MEMORIA}
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.7
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    deploy:
+      resources:
+        limits:
+          cpus: ${ZOOKEEPER_CPUS}
+          memory: ${ZOOKEEPER_MEMORIA}
+
+  kafka:
+    image: confluentinc/cp-kafka:7.7.7
+    depends_on: [zookeeper]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_HEAP_OPTS: -Xms512m -Xmx512m
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 5s
+      retries: 30
+    deploy:
+      resources:
+        limits:
+          cpus: ${KAFKA_CPUS}
+          memory: ${KAFKA_MEMORIA}
+
+  api-gateway:
+    image: bench/api-gateway
+    build: ../ecommerce-microservices/api-gateway
+    environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_OPCOES}
+      ECOMMERCE_CONFIG_ROTAS_AUTH: http://auth:8081
+      ECOMMERCE_CONFIG_ROTAS_PARTICIPANTE: http://participante:8082
+      ECOMMERCE_CONFIG_ROTAS_PRODUTO: http://produto:8083
+      ECOMMERCE_CONFIG_ROTAS_LOJA: http://loja:8084
+      ECOMMERCE_CONFIG_ROTAS_PEDIDO: http://pedido:8085
+      ECOMMERCE_CONFIG_ROTAS_PAGAMENTO: http://pagamento:8086
+    ports:
+      - "${PORTA}:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: ${GATEWAY_CPUS}
+          memory: ${GATEWAY_MEMORIA}
+
+  auth:
+    image: bench/auth
+    build: ../ecommerce-microservices/auth
+    depends_on: *depende-infra
+    environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_OPCOES}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommerceauth
+      SPRING_JPA_SHOWSQL: "false"
+      ECOMMERCE_CONFIG_KAFKA_SERVERURL: kafka:9092
+    deploy:
+      resources:
+        limits:
+          cpus: ${AUTH_CPUS}
+          memory: ${AUTH_MEMORIA}
+
+  participante:
+    image: bench/participante
+    build: ../ecommerce-microservices/participante
+    depends_on: *depende-infra
+    environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_OPCOES}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommerceparticipante
+      SPRING_JPA_SHOWSQL: "false"
+      ECOMMERCE_CONFIG_KAFKA_SERVERURL: kafka:9092
+    deploy:
+      resources:
+        limits:
+          cpus: ${PARTICIPANTE_CPUS}
+          memory: ${PARTICIPANTE_MEMORIA}
+
+  produto:
+    image: bench/produto
+    build: ../ecommerce-microservices/produto
+    depends_on:
+      <<: *depende-infra
+      minio: { condition: service_started }
+    environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_OPCOES}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommerceproduto
+      SPRING_JPA_SHOWSQL: "false"
+      ECOMMERCE_CONFIG_KAFKA_SERVERURL: kafka:9092
+      MINIO_URL: http://minio:9000
+    deploy:
+      resources:
+        limits:
+          cpus: ${PRODUTO_CPUS}
+          memory: ${PRODUTO_MEMORIA}
+
+  loja:
+    image: bench/loja
+    build: ../ecommerce-microservices/loja
+    depends_on:
+      postgres: { condition: service_healthy }
+      minio: { condition: service_started }
+    environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_OPCOES}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommerceloja
+      SPRING_JPA_SHOWSQL: "false"
+      MINIO_URL: http://minio:9000
+    deploy:
+      resources:
+        limits:
+          cpus: ${LOJA_CPUS}
+          memory: ${LOJA_MEMORIA}
+
+  pedido:
+    image: bench/pedido
+    build: ../ecommerce-microservices/pedido
+    depends_on: *depende-infra
+    environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_OPCOES}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommercepedido
+      SPRING_JPA_SHOWSQL: "false"
+      ECOMMERCE_CONFIG_KAFKA_SERVERURL: kafka:9092
+      ECOMMERCE_CONFIG_CLIENTS_PRODUTO_URL: http://produto:8083/produto
+      ECOMMERCE_CONFIG_CLIENTS_PARTICIPANTE_URL: http://participante:8082/participante
+      ECOMMERCE_CONFIG_CLIENTS_PAGAMENTO_URL: http://pagamento:8086/pagamento
+      ECOMMERCE_CONFIG_CLIENTS_AUTH_URL: http://auth:8081/auth
+    deploy:
+      resources:
+        limits:
+          cpus: ${PEDIDO_CPUS}
+          memory: ${PEDIDO_MEMORIA}
+
+  pagamento:
+    image: bench/pagamento
+    build: ../ecommerce-microservices/pagamento
+    depends_on:
+      <<: *depende-infra
+      mercadopago: { condition: service_started }
+    environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_OPCOES} -Djavax.net.ssl.trustStore=/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=benchmark
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommercepagamento
+      SPRING_JPA_SHOWSQL: "false"
+      ECOMMERCE_CONFIG_KAFKA_SERVERURL: kafka:9092
+      ECOMMERCE_CONFIG_CLIENTS_LOJA_URL: http://loja:8084/loja
+      ECOMMERCE_CONFIG_CLIENTS_AUTH_URL: http://auth:8081/auth
+    volumes:
+      - ./mercadopago-stub/certs:/certs:ro
+    deploy:
+      resources:
+        limits:
+          cpus: ${PAGAMENTO_CPUS}
+          memory: ${PAGAMENTO_MEMORIA}

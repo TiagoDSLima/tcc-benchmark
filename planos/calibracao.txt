@@ -1,0 +1,8 @@
+# Calibração: teste de estresse de cada cenário para encontrar o ponto de saturação das duas
+# arquiteturas e escolher as taxas de carga baixa, média e alta do plano de desempenho.
+# Rodar com 1 repetição: bash scripts/lote.sh planos/calibracao.txt 1
+# Duração aproximada: 1 h 20 min.
+
+catalogo estresse TAXA=600 VUS_MAX=1000
+compra estresse TAXA=150 VUS_MAX=1000
+misto estresse TAXA=400 VUS_MAX=1000

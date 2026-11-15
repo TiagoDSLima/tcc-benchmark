@@ -1,0 +1,42 @@
+name: bench-monolito
+
+services:
+  postgres:
+    image: postgres:17.4
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecommerce
+    volumes:
+      - ../ecommerce-monolith/infra/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ecommerce"]
+      interval: 2s
+      retries: 30
+    deploy:
+      resources:
+        limits:
+          cpus: ${POSTGRES_CPUS}
+          memory: ${POSTGRES_MEMORIA}
+
+  monolito:
+    image: bench/monolito
+    build: ../ecommerce-monolith
+    depends_on:
+      postgres: { condition: service_healthy }
+      minio: { condition: service_started }
+      mercadopago: { condition: service_started }
+    environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_OPCOES} -Djavax.net.ssl.trustStore=/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=benchmark
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommerce
+      SPRING_JPA_SHOWSQL: "false"
+      MINIO_URL: http://minio:9000
+    volumes:
+      - ./mercadopago-stub/certs:/certs:ro
+    ports:
+      - "${PORTA}:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: ${MONOLITO_CPUS}
+          memory: ${MONOLITO_MEMORIA}

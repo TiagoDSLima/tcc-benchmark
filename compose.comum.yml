@@ -1,0 +1,39 @@
+services:
+  mercadopago:
+    image: wiremock/wiremock:3.9.2
+    command:
+      - --port=8080
+      - --https-port=443
+      - --https-keystore=/home/wiremock/certs/stub-keystore.jks
+      - --keystore-type=JKS
+      - --keystore-password=benchmark
+      - --key-manager-password=benchmark
+      - --no-request-journal
+      - --disable-request-logging
+      - --async-response-enabled=true
+      - --async-response-threads=200
+      - --container-threads=200
+    volumes:
+      - ./mercadopago-stub/mappings:/home/wiremock/mappings:ro
+      - ./mercadopago-stub/certs:/home/wiremock/certs:ro
+    networks:
+      default:
+        aliases:
+          - api.mercadopago.com
+    deploy:
+      resources:
+        limits:
+          cpus: ${MERCADOPAGO_CPUS}
+          memory: ${MERCADOPAGO_MEMORIA}
+
+  minio:
+    image: bitnamilegacy/minio:latest
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_DEFAULT_BUCKETS: ecommerce.produtos,ecommerce.loja
+    deploy:
+      resources:
+        limits:
+          cpus: ${MINIO_CPUS}
+          memory: ${MINIO_MEMORIA}

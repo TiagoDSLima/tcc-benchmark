@@ -1,0 +1,17 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/payments",
+    "bodyPatterns": [
+      { "matchesJsonPath": "$[?(@.payment_method_id == 'pix')]" }
+    ]
+  },
+  "response": {
+    "status": 201,
+    "fixedDelayMilliseconds": 100,
+    "headers": { "Content-Type": "application/json" },
+    "body": "{\"id\": {{jsonPath request.body '$.external_reference'}}, \"status\": \"pending\", \"status_detail\": \"pending_waiting_transfer\", \"payment_method_id\": \"pix\", \"transaction_amount\": {{jsonPath request.body '$.transaction_amount'}}, \"external_reference\": \"{{jsonPath request.body '$.external_reference'}}\", \"point_of_interaction\": {\"transaction_data\": {\"qr_code\": \"00020126580014br.gov.bcb.pix0136benchmark-{{jsonPath request.body '$.external_reference'}}5204000053039865802BR6304ABCD\", \"qr_code_base64\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\"}}}",
+    "transformers": ["response-template"]
+  }
+}

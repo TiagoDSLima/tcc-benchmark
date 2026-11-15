@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/v1/payments/[0-9]+"
+  },
+  "response": {
+    "status": 200,
+    "fixedDelayMilliseconds": 100,
+    "headers": { "Content-Type": "application/json" },
+    "body": "{\"id\": {{request.pathSegments.[2]}}, \"status\": \"approved\", \"status_detail\": \"accredited\", \"external_reference\": \"{{request.pathSegments.[2]}}\"}",
+    "transformers": ["response-template"]
+  }
+}

@@ -1,0 +1,57 @@
+services:
+  api-gateway:
+    ports: !reset []
+    environment:
+      ECOMMERCE_CONFIG_ROTAS_AUTH: http://balanceador:8081
+      ECOMMERCE_CONFIG_ROTAS_PARTICIPANTE: http://balanceador:8082
+      ECOMMERCE_CONFIG_ROTAS_PRODUTO: http://balanceador:8083
+      ECOMMERCE_CONFIG_ROTAS_LOJA: http://balanceador:8084
+      ECOMMERCE_CONFIG_ROTAS_PEDIDO: http://balanceador:8085
+      ECOMMERCE_CONFIG_ROTAS_PAGAMENTO: http://balanceador:8086
+    deploy:
+      replicas: ${REPLICAS_GATEWAY:-1}
+
+  auth:
+    deploy:
+      replicas: ${REPLICAS_AUTH:-1}
+
+  participante:
+    deploy:
+      replicas: ${REPLICAS_PARTICIPANTE:-1}
+
+  produto:
+    deploy:
+      replicas: ${REPLICAS_PRODUTO:-1}
+
+  loja:
+    deploy:
+      replicas: ${REPLICAS_LOJA:-1}
+
+  pedido:
+    environment:
+      ECOMMERCE_CONFIG_CLIENTS_PRODUTO_URL: http://balanceador:8083/produto
+      ECOMMERCE_CONFIG_CLIENTS_PARTICIPANTE_URL: http://balanceador:8082/participante
+      ECOMMERCE_CONFIG_CLIENTS_PAGAMENTO_URL: http://balanceador:8086/pagamento
+      ECOMMERCE_CONFIG_CLIENTS_AUTH_URL: http://balanceador:8081/auth
+    deploy:
+      replicas: ${REPLICAS_PEDIDO:-1}
+
+  pagamento:
+    environment:
+      ECOMMERCE_CONFIG_CLIENTS_LOJA_URL: http://balanceador:8084/loja
+      ECOMMERCE_CONFIG_CLIENTS_AUTH_URL: http://balanceador:8081/auth
+    deploy:
+      replicas: ${REPLICAS_PAGAMENTO:-1}
+
+  balanceador:
+    image: nginx:1.27.3
+    depends_on: [api-gateway, auth, participante, produto, loja, pedido, pagamento]
+    volumes:
+      - ./balanceador/microsservicos.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "${PORTA}:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: ${BALANCEADOR_CPUS}
+          memory: ${BALANCEADOR_MEMORIA}
