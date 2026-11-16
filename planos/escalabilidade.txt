@@ -1,9 +1,9 @@
-# Escalabilidade, sempre com o teste de estresse do cenário misto.
-# Ajuste TAXA depois da calibração para que o último degrau passe do ponto de saturação.
+# Escalabilidade, sempre com o teste de estresse do cenário misto (8 degraus de 30 s).
+# Na calibração de 15/11/2026 as duas arquiteturas saturaram entre 200 e 250 it/s com 4 CPUs.
 # Rodar: bash scripts/lote.sh planos/escalabilidade.txt
 # Duração aproximada com 5 repetições: 8 h.
 
-# Vertical: mesmo container(s), com 2, 4 e 8 CPUs na camada de aplicação (memória fixa)
+# Vertical: 2, 4 e 8 CPUs na camada de aplicação (memória fixa em 4 GB)
 misto estresse TAXA=400 VUS_MAX=1000 DURACAO_PASSO=30s RECURSOS=2cpu
 misto estresse TAXA=400 VUS_MAX=1000 DURACAO_PASSO=30s RECURSOS=4cpu
 misto estresse TAXA=600 VUS_MAX=1000 DURACAO_PASSO=30s RECURSOS=8cpu
@@ -12,5 +12,5 @@ misto estresse TAXA=600 VUS_MAX=1000 DURACAO_PASSO=30s RECURSOS=8cpu
 # porque também passa pelo balanceador.
 misto estresse TAXA=400 VUS_MAX=1000 DURACAO_PASSO=30s ESCALA=1
 misto estresse TAXA=600 VUS_MAX=1000 DURACAO_PASSO=30s ESCALA=1 ARQ=monolito REPLICAS_MONOLITO=2
-# Nos microsserviços, replique os serviços que mais consumiram CPU na calibração (exemplo abaixo)
-misto estresse TAXA=600 VUS_MAX=1000 DURACAO_PASSO=30s ESCALA=1 ARQ=microsservicos REPLICAS_GATEWAY=2 REPLICAS_PRODUTO=2 REPLICAS_PEDIDO=2
+# Nos microsserviços são replicados os serviços que chegaram ao teto de CPU na calibração do cenário misto
+misto estresse TAXA=600 VUS_MAX=1000 DURACAO_PASSO=30s ESCALA=1 ARQ=microsservicos REPLICAS_GATEWAY=2 REPLICAS_PRODUTO=2 REPLICAS_PEDIDO=2 REPLICAS_PAGAMENTO=2

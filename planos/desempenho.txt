@@ -1,20 +1,21 @@
 # Desempenho com o orçamento padrão (4 CPUs e 4 GB na camada de aplicação).
-# As taxas abaixo são provisórias: ajuste depois da calibração para representar cargas baixa, média e alta.
+# Taxas definidas pela calibração de 15/11/2026: as cargas baixa, média e alta ficam abaixo do ponto de
+# saturação da arquitetura que satura primeiro (microsserviços: catálogo 300, compra ~19, misto 200 it/s).
 # Rodar: bash scripts/lote.sh planos/desempenho.txt
 # Duração aproximada com 5 repetições: 13 h.
 
 repouso repouso DURACAO=2m
 
-catalogo carga TAXA=50
+catalogo carga TAXA=75
 catalogo carga TAXA=150
-catalogo carga TAXA=300
+catalogo carga TAXA=250
 
+compra carga TAXA=5
 compra carga TAXA=10
-compra carga TAXA=30
-compra carga TAXA=60
+compra carga TAXA=20
 
 misto carga TAXA=50
-misto carga TAXA=150
-misto carga TAXA=300
+misto carga TAXA=100
+misto carga TAXA=175
 
 misto estresse TAXA=400 VUS_MAX=1000 DURACAO_PASSO=30s
